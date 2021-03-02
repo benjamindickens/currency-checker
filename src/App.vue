@@ -10,15 +10,31 @@
           class="currency-input__input-box"
           id="currencyInput"
           v-model="ticker"
-          @keydown.enter="add"
+          @focus="wrongName = false"
+          @keydown.enter="nameValidation"
         />
-        <div v-if="ticker" class="currency-input__currency-helper" @click="add">
-          <div type="text" class="currency-input__auto-input" @click="ticker = 'BTC'">BTC</div>
+        <div
+          v-if="ticker"
+          class="currency-input__currency-helper"
+          @click="nameValidation"
+        >
+          <div
+            type="text"
+            class="currency-input__auto-input"
+            @click="ticker = 'BTC'"
+          >
+            BTC
+          </div>
         </div>
       </div>
+      <template v-if="wrongName">
+        <div class="currency-input__error">
+          <span>Ошибка!</span> введенная валюта уже существует.
+        </div>
+      </template>
       <button
         class="js-input-submit currency-input__submit main-btn"
-        @click="add"
+        @click="nameValidation"
       >
         + Добавить
       </button>
@@ -68,7 +84,9 @@ export default {
       ticker: "",
       tickers: [],
       currentGraph: null,
-      graphData: []
+      graphData: [],
+      wrongName: false,
+      coinsBase: []
     };
   },
   methods: {
@@ -124,9 +142,19 @@ export default {
       return newArray;
     },
     updateGraph(innerData) {
+      this.wrongName = false;
       if (this.currentGraph !== innerData.name) {
         this.currentGraph = innerData.name;
         this.graphData = [];
+      }
+    },
+    nameValidation() {
+      const result = this.tickers.filter(el => el.name === this.ticker);
+      if (result.length > 0) {
+        return (this.wrongName = true);
+      } else {
+        this.add();
+        return (this.wrongName = false);
       }
     }
   },
@@ -134,6 +162,22 @@ export default {
     ticker() {
       this.ticker = this.ticker.toUpperCase();
     }
+  },
+  created() {
+    const url =
+      "https://min-api.cryptocompare.com/data/all/coinlist?summary=true";
+    fetch(url)
+      .then(data => data.json())
+      .then(result => {
+        const keys = Object.keys(result.Data);
+        keys.forEach(key => {
+          const newObj = {
+            name: result.Data[key].Symbol,
+            fullName: result.Data[key].FullName
+          };
+          this.coinsBase.push(newObj);
+        });
+      });
   }
 };
 </script>
@@ -147,11 +191,27 @@ export default {
   display: grid;
   grid-gap: 1rem;
 
+  &__error {
+    background: rgba(255, 42, 42, 0.2);
+    font-size: 1.6rem;
+    padding: 0.6rem 0.3rem;
+    line-height: 1.8rem;
+    max-width: 25rem;
+    color: red;
+    border-radius: 5px;
+  }
+
+  &__error > span {
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
   &__container {
     display: grid;
     grid-template-columns: 25rem;
     border-bottom: 1px solid lightgray;
     padding-bottom: 0.2rem;
+    border-radius: 5px;
   }
 
   &__currency-helper {
