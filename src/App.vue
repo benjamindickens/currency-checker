@@ -20,10 +20,13 @@
         >
           <div
             type="text"
+            v-for="(hint, index) in filtredHints()"
+            :key="index"
             class="currency-input__auto-input"
-            @click="ticker = 'BTC'"
+            :style="{ fontSize: hint.name.length > 4 ? '1.4rem' : '1.5rem' }"
+            @click="ticker = hint.name"
           >
-            BTC
+            {{ hint.name }}
           </div>
         </div>
       </div>
@@ -86,7 +89,8 @@ export default {
       currentGraph: null,
       graphData: [],
       wrongName: false,
-      coinsBase: []
+      coinsBase: [],
+      found: 0
     };
   },
   methods: {
@@ -156,6 +160,14 @@ export default {
         this.add();
         return (this.wrongName = false);
       }
+    },
+    filtredHints() {
+      return this.coinsBase
+        .filter(
+          el =>
+            el.name.includes(this.ticker) || el.fullName.includes(this.ticker)
+        )
+        .splice(0, 4);
     }
   },
   watch: {
@@ -196,7 +208,7 @@ export default {
     font-size: 1.6rem;
     padding: 0.6rem 0.3rem;
     line-height: 1.8rem;
-    max-width: 25rem;
+    max-width: 30rem;
     color: red;
     border-radius: 5px;
   }
@@ -208,7 +220,7 @@ export default {
 
   &__container {
     display: grid;
-    grid-template-columns: 25rem;
+    grid-template-columns: 30rem;
     border-bottom: 1px solid lightgray;
     padding-bottom: 0.2rem;
     border-radius: 5px;
@@ -217,16 +229,18 @@ export default {
   &__currency-helper {
     padding: 0.5rem 0 0.3rem;
     display: grid;
-    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fit, minmax(1rem, 1fr));
     grid-gap: 0.2rem;
   }
 
   &__auto-input {
+    display: grid;
+    align-content: center;
     text-align: center;
+    height: 4.5rem;
     border: 1px solid darkgray;
     color: royalblue;
     border-radius: 5px;
-    padding: 0.2rem 0.4rem;
   }
 
   &__input-box {
