@@ -90,48 +90,52 @@ export default {
       graphData: [],
       wrongName: false,
       coinsBase: [],
-      found: 0
+      found: 0,
+      dbChecked: false
     };
   },
   methods: {
+    subscribeUpdate(currencyName) {
+      const url = `https://min-api.cryptocompare.com/data/price?fsym=${currencyName}&tsyms=USD&api_key=ba1a87d6f1a69c9acec2fea53cbfe02026e010dffbbcad9953202825578bbadd`;
+      const dataUpdate = setInterval(async () => {
+        await fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            // currentObject.value =
+            //   data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(1);
+            this.tickers.find(t => t.name === currencyName).value =
+              data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+            if (this.currentGraph === currencyName) {
+              this.graphData.push(data.USD);
+            }
+          })
+          .catch(err => {
+            this.tickers = this.tickers.filter(t => t.name !== currencyName);
+            console.log(err);
+            clearInterval(dataUpdate);
+            if (currencyName === this.currentGraph) {
+              this.currentGraph = null;
+            }
+          });
+      }, 10000);
+    },
     add() {
       const currentTicker = {
         name: this.ticker,
         value: "-"
       };
       this.tickers.push(currentTicker);
-      const currentObject = this.tickers[this.tickers.length - 1];
+      localStorage.setItem("currency-list", JSON.stringify(this.tickers));
+      // const currentObject = this.tickers[this.tickers.length - 1];
       // для работы во вью 3 необходимо пониматьч то работа с объектами происзоит через прокси метод тоесть все объекты и массивы что
       // мы храним внутри нашшей иснтанс получает спец оболочку в виде прокси и все что мы в них помещаем по сути своей не являються теми же самими эллементами что были до перемещения
-      const url = `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=ba1a87d6f1a69c9acec2fea53cbfe02026e010dffbbcad9953202825578bbadd`;
-      const dataUpdate = setInterval(async () => {
-        await fetch(url)
-          .then(response => response.json())
-          .then(data => {
-            currentObject.value =
-              data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(1);
-            // this.tickers.find(t => t.name === currentTicker.name).value =
-            //   data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-            if (this.currentGraph === currentTicker.name) {
-              this.graphData.push(data.USD);
-            }
-          })
-          .catch(err => {
-            this.tickers = this.tickers.filter(
-              t => t.name !== currentTicker.name
-            );
-            console.log(err);
-            clearInterval(dataUpdate);
-            if (currentTicker.name === this.currentGraph) {
-              this.currentGraph = null;
-            }
-          });
-      }, 10000);
+      this.subscribeUpdate(currentTicker.name);
       this.ticker = "";
     },
     removeCurrency(currentBox) {
       this.tickers = this.tickers.filter(t => t !== currentBox);
-      if (currentBox.name === this.currentGraph?.name) {
+      localStorage.setItem("currency-list", JSON.stringify(this.tickers));
+      if (currentBox.name === this.currentGraph) {
         this.currentGraph = null;
       }
     },
@@ -176,6 +180,14 @@ export default {
     }
   },
   created() {
+    const currencyData = localStorage.getItem("currency-list");
+    if (currencyData) {
+      this.tickers = JSON.parse(currencyData);
+      this.tickers.forEach(el => {
+        this.subscribeUpdate(el.name);
+      });
+    }
+
     const url =
       "https://min-api.cryptocompare.com/data/all/coinlist?summary=true";
     fetch(url)
